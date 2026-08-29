@@ -20,11 +20,15 @@ registers second:
 
 1. register the complete screen with a fixed reference frame;
 2. map native decoded pixels directly into each register ROI once;
-3. preserve the best individual observations alongside median/Huber fusion;
-4. estimate effective blur from nearby display borders, never from an expected
+3. preserve the best individual observations and the complete aligned ledger
+   alongside median/Huber fusion;
+4. inspect a full status row before splitting its date, clock, or counter, and
+   segment changing fields into persistent states before fusion;
+5. estimate effective blur from nearby display borders, never from an expected
    digit;
-5. run a bounded PSF sweep and retain every parameter/result;
-6. use whole-field forward hypotheses only as `MODEL_SUGGESTION` and reject
+6. run a bounded PSF sweep and retain every parameter/result; if no valid edge
+   exists, mark the sweep `UNCALIBRATED_FALLBACK` and do not use it as evidence;
+7. use whole-field forward hypotheses only as `MODEL_SUGGESTION` and reject
    them when candidate margins or temporal stability are weak.
 
 Specialized scripts are in
@@ -32,6 +36,10 @@ Specialized scripts are in
 
 - `native_register_superresolution.py` — direct native-frame mapping, phase
   census, source-observation ranking and robust fusion;
+- `temporal_field_topology.py` — fail-closed persistent-state and topology
+  analysis for static or changing fields;
+- `rectify_still_screen.py` — deterministic rectification of supplied stills
+  from four explicit screen corners;
 - `edge_psf_deconvolution.py` — independent edge-spread estimate plus bounded
   Wiener/Richardson-Lucy diagnostics;
 - `compact_glyph_sheet.py` — auditable repeated-glyph sheet;

@@ -42,6 +42,40 @@ Exploit repeated UI structure without assigning meanings prematurely:
 
 This is analogous to deciphering a repeated alphabet: repetition can reconstruct glyph classes even when one occurrence is weak. It cannot attach a digit name without a bridge.
 
+### Empirical blur dictionary and topology bridge
+
+When a symbol is unambiguous in one part of the same display, preserve its
+appearance across frames as an empirical degradation dictionary. Compare a
+target to the whole sequence or to even/odd reconstructions, not merely to one
+sharp-looking enlargement. Use the known occurrence as an anchor only after it
+passes leave-one-location-out recognition on other known anchors.
+
+Normalize every glyph to an explicit `(height, width)` contract. Check the
+array shape before clustering: swapping width and height can produce stable but
+case-location-specific clusters. For weight or font variations, a topology
+view may combine a centered soft mask, skeleton, distance transform and axis
+projections. Select its parameters on held-out known glyphs, never on the
+unknown target.
+
+If the alphabet is known in advance, retain that fixed-alphabet model in the
+report even when an unsupervised score prefers fewer clusters. A lower selected
+cluster count may mean that some symbols are absent, but it may also mean that
+blur merged distinct glyphs. Do not use it to shrink a known alphabet silently.
+
+### Constrained word decipherment
+
+For degraded labels, keep the visual likelihood and the word constraint as
+separate terms. A candidate lexicon, UI vocabulary, repeated headings or known
+field grammar may rank visually plausible strings, but cannot create a missing
+stroke. Report the unconstrained per-position candidate sets alongside the
+lexicon-ranked words. Accept a word only when its letters remain stable across
+frame splits and at least one alternative deterministic reconstruction; when
+the lexicon is the deciding evidence, label the result `MODEL_SUGGESTION`.
+
+Use confirmed labels to add new glyph anchors iteratively. Re-run the held-out
+anchor test after every expansion, and stop propagation when one inferred
+anchor would be used to validate itself.
+
 ## 4. Candidate testing in observation space
 
 For candidate glyph `g`, render a high-resolution template, project and degrade it separately for every frame, then compare the prediction with the native pixel patch. Fit only declared nuisance parameters such as sub-pixel offset, contrast and a bounded blur kernel.

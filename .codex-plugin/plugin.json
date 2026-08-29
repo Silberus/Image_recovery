@@ -1,6 +1,6 @@
 {
   "name": "evidence-media-restoration",
-  "version": "0.2.3+codex.20260829145357",
+  "version": "0.2.3+codex.20260829170703",
   "description": "Configurable evidence-preserving photo/video restoration with exact frame metadata, robust fusion, model audits, and provenance.",
   "author": {
     "name": "Silberus"

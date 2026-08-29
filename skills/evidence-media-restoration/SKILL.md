@@ -40,24 +40,46 @@ Different encodes, screenshots, or crops of one recording form one witness clust
 
 For tiny instrument values, labels, licence plates, or screen registers, a readable enlargement is not the decision surface. Read [references/glyph-inverse-decoding.md](references/glyph-inverse-decoding.md) and perform recognition in observation space: test candidate glyphs through the measured camera/display degradation model against the native decoded frames. First establish whether the frames contain independent sub-pixel phases; do not estimate this from images that have already been rectified or resampled.
 
+When repeated digits or letters are present, build a neutral empirical glyph
+atlas and a per-frame blur dictionary before naming symbols. Preserve the
+canonical glyph array as `(height, width)`, validate any topology
+normalization on held-out known anchors, and retain a fixed-alphabet result
+when the alphabet size is known. Candidate words may rank visual hypotheses
+but do not replace stroke evidence; keep unconstrained character sets visible.
+
 ### Tiny-register fail-closed sequence
 
-1. Rectify/register the whole screen to establish geometry and labels.
+1. Rectify/register the whole screen to establish geometry and labels. For a
+   status bar, preserve and inspect the complete row before making small field
+   crops: separators, neighboring labels, and a live clock transition can
+   establish the field format without inventing characters. Use
+   `rectify_still_screen.py` for user-supplied stills with explicit corners.
 2. Compose the native-frame-to-register transform and resample each source
    frame only once. Use `native_register_superresolution.py`; retain the six
-   strongest source observations because fusion can erase a decisive stroke.
+   strongest source observations and the complete aligned-observation ledger
+   because fusion can erase a decisive stroke. A local extraction ordinal is
+   not an absolute video-frame number; prefer exact PTS and audit the mapping.
 3. Determine the true field format and glyph count before splitting. A wrong
    split can create high-scoring but meaningless digit matches.
-4. Estimate an effective PSF from nearby non-semantic edges with
+4. Before temporal fusion, run `temporal_field_topology.py`. Static fields may
+   use all compatible observations. Clocks, counters, alarms, and process
+   values must be segmented into persistent states and fused only within one
+   state. Set `--max-changes 0` for a known-static field; use a bounded value
+   for a clock/counter. A one-frame residual spike is not a state change.
+5. Estimate an effective PSF from nearby non-semantic edges with
    `edge_psf_deconvolution.py`. Treat the estimate as optics + display
-   antialiasing + resampling, not as a pure lens measurement.
-5. Compare observed, Wiener and Richardson-Lucy topology over a bounded sweep.
+   antialiasing + resampling, not as a pure lens measurement. If no valid edge
+   samples exist, label the result `UNCALIBRATED_FALLBACK`, set evidence
+   usability to false, and do not read text from it.
+6. Compare observed, Wiener and Richardson-Lucy topology over a bounded sweep.
    A stroke that appears only at one parameter is not evidence.
-6. Use `compact_glyph_sheet.py` to compare repeated glyphs across registers.
-7. Candidate-font and whole-field searches remain `MODEL_SUGGESTION`. Reject
+7. Use `compact_glyph_sheet.py` to compare repeated glyphs across registers.
+8. Candidate-font and whole-field searches remain `MODEL_SUGGESTION`. Reject
    the numeric output when top-candidate margins are small, candidates change
    across source frames, or the assumed font/format is not independently known.
-8. Report `UNRESOLVED` rather than imposing process-plausible values.
+9. Report `UNRESOLVED` rather than imposing process-plausible values. Mark a
+   method `NO_INFORMATION_GAIN` when it reveals no stable source-supported
+   stroke absent from the best observation.
 
 ## Working tool
 
@@ -87,7 +109,7 @@ Edit a copy of `assets/profiles/hmi-screen.yaml` to set the interval and four vi
 .\.runtime\Scripts\python.exe .\skills\evidence-media-restoration\scripts\evidence_media_tool.py selftest .selftest --config .\skills\evidence-media-restoration\assets\profiles\hmi-screen.yaml
 ```
 
-Keep `scripts/restore_evidence_media.py`, `inverse_glyph_audit.py`, `glyph_template_hypotheses.py`, `native_register_superresolution.py`, `edge_psf_deconvolution.py`, `compact_glyph_sheet.py`, `font_glyph_hypotheses.py`, `field_forward_hypotheses.py`, and `find_screen_views.py` for specialized investigations. Successful execution is never proof of legibility.
+Keep `scripts/restore_evidence_media.py`, `inverse_glyph_audit.py`, `glyph_template_hypotheses.py`, `native_register_superresolution.py`, `temporal_field_topology.py`, `rectify_still_screen.py`, `edge_psf_deconvolution.py`, `compact_glyph_sheet.py`, `font_glyph_hypotheses.py`, `field_forward_hypotheses.py`, and `find_screen_views.py` for specialized investigations. Successful execution is never proof of legibility.
 
 ## Dependency and model boundary
 

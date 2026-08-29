@@ -135,10 +135,20 @@ def main() -> int:
     edge_rows: list[dict[str, Any]] = []
     all_x: list[float] = []
     all_y: list[float] = []
-    full_images = []
-    for register in range(20):
-        full = _read(args.register_root / f"register_{register:02d}" / "native_huber_with_margin_x4.png")
-        full_images.append(full)
+    register_dirs = sorted(
+        path for path in args.register_root.glob("register_*")
+        if path.is_dir() and (path / "native_huber_with_margin_x4.png").exists()
+    )
+    if not register_dirs:
+        raise RuntimeError(f"No native-register outputs found under {args.register_root}")
+    full_images: list[tuple[int, np.ndarray]] = []
+    for register_dir in register_dirs:
+        try:
+            register = int(register_dir.name.rsplit("_", 1)[-1])
+        except ValueError:
+            continue
+        full = _read(register_dir / "native_huber_with_margin_x4.png")
+        full_images.append((register, full))
         values_x, values_y = _estimate(full, args.margin_highres)
         all_x.extend(values_x)
         all_y.extend(values_y)
@@ -152,13 +162,14 @@ def main() -> int:
                 "classification": "DERIVED_DETERMINISTIC",
             }
         )
+    calibrated = bool(all_x or all_y)
     sigma_x = float(np.median(all_x)) if all_x else 6.0
     sigma_y = float(np.median(all_y)) if all_y else sigma_x
     # Avoid pretending the rounded HMI border is a perfect optical knife edge.
     # The sweep around the measured effective value is therefore preserved.
     factors = (0.70, 0.85, 1.00, 1.15)
     atlas_rows = []
-    for register, full in enumerate(full_images):
+    for register, full in full_images:
         margin = args.margin_highres
         h, w = full.shape
         inner = full[margin : h - margin, margin : w - margin]
@@ -168,12 +179,18 @@ def main() -> int:
             psf = _gaussian_psf(max(1.0, sigma_x * factor), max(1.0, sigma_y * factor))
             restored = _wiener(full, psf, balance=0.018)
             panels.append(cv2.resize(_normalize(restored[margin : h - margin, margin : w - margin]), (800, 240), interpolation=cv2.INTER_NEAREST))
-            labels.append(f"Wiener edge-PSF x{factor:.2f}")
+            labels.append(
+                f"Wiener edge-PSF x{factor:.2f}"
+                if calibrated else f"Wiener uncalibrated fallback x{factor:.2f} — NOT EVIDENCE"
+            )
         psf = _gaussian_psf(max(1.0, sigma_x * 0.85), max(1.0, sigma_y * 0.85))
         for iterations in (3, 6, 10):
             restored = _richardson_lucy(full, psf, iterations)
             panels.append(cv2.resize(_normalize(restored[margin : h - margin, margin : w - margin]), (800, 240), interpolation=cv2.INTER_NEAREST))
-            labels.append(f"RL edge-PSF i{iterations}")
+            labels.append(
+                f"RL edge-PSF i{iterations}"
+                if calibrated else f"RL uncalibrated fallback i{iterations} — NOT EVIDENCE"
+            )
         row = np.full((len(panels) * 270 + 34, 800, 3), 245, dtype=np.uint8)
         cv2.putText(row, f"register {register:02d}", (8, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (20, 20, 20), 1, cv2.LINE_AA)
         offset = 34
@@ -194,6 +211,8 @@ def main() -> int:
         "sigma_y_rectified_pixels": sigma_y / 4.0,
         "edge_samples_x": len(all_x),
         "edge_samples_y": len(all_y),
+        "psf_estimate_status": "CALIBRATED_FROM_EDGES" if calibrated else "UNCALIBRATED_FALLBACK",
+        "deconvolution_evidence_usable": calibrated,
         "interpretation": "effective edge spread including optics, resampling, display antialiasing and rounded-border bias",
         "classification": "DERIVED_DETERMINISTIC",
         "reading_status": "UNRESOLVED",

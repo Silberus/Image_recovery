@@ -8,13 +8,9 @@ import cv2
 import numpy as np
 
 
-GROUPS = {
-    0: "Hot Oil Zone 1 T-1", 1: "Hot Oil Zone 1 T-2", 2: "Hot Oil Zone 1 T-3", 3: "Hot Oil Zone 1 T-4",
-    4: "Hot Oil Zone 2 T-1", 5: "Hot Oil Zone 2 T-2", 6: "Hot Oil Zone 2 T-3", 7: "Hot Oil Zone 2 T-4",
-    8: "Aging Zone 3 T-1", 9: "Aging Zone 3 T-2", 10: "Aging Zone 3 T-3", 11: "Aging Zone 3 T-4",
-    12: "Cool Down Zone 4 T-1", 14: "Cool Down Zone 4 T-2", 16: "Cool Down Zone 4 T-3", 18: "Cool Down Zone 4 T-4",
-    13: "Zone 4 1 Hour Average T-1", 15: "Zone 4 1 Hour Average T-2", 17: "Zone 4 1 Hour Average T-3", 19: "Zone 4 1 Hour Average T-4",
-}
+def _generic_label(register: int) -> str:
+    """Never bake a case-specific interpretation into a neutral atlas."""
+    return f"block {register // 4 + 1} row {register % 4 + 1}"
 
 
 def _read(path: Path) -> np.ndarray:
@@ -50,7 +46,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--register-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--windows", default="20:76,68:128,120:182")
+    parser.add_argument("--windows", default="20:50,49:79,78:108,118:148,147:177")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     windows = [tuple(map(int, item.split(":"))) for item in args.windows.split(",")]
@@ -70,7 +66,7 @@ def main() -> int:
             cells.append(view)
         row = np.hstack(cells)
         label = np.full((28, row.shape[1], 3), 245, dtype=np.uint8)
-        cv2.putText(label, f"r{register:02d}  {GROUPS[register]}", (5, 19), cv2.FONT_HERSHEY_SIMPLEX, 0.48, (20, 20, 20), 1, cv2.LINE_AA)
+        cv2.putText(label, f"r{register:02d}  {_generic_label(register)}", (5, 19), cv2.FONT_HERSHEY_SIMPLEX, 0.48, (20, 20, 20), 1, cv2.LINE_AA)
         atlas_rows.append(np.vstack([label, row]))
     _write(args.output / "00_internal_glyph_atlas.png", np.vstack(atlas_rows))
 

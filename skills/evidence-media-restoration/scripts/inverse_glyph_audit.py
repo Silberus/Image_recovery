@@ -328,10 +328,14 @@ def native_drizzle_register(
 
 
 def normalized_cell(cell: np.ndarray) -> np.ndarray:
+    """Return a canonical glyph image with shape (height=36, width=24)."""
     floating = cell.astype(np.float32)
     low, high = np.percentile(floating, (10, 95))
     normalized = np.clip((floating - low) / max(float(high - low), 1.0), 0, 1)
-    return cv2.resize(normalized, (24, 36), interpolation=cv2.INTER_CUBIC)
+    result = cv2.resize(normalized, (24, 36), interpolation=cv2.INTER_CUBIC)
+    if result.shape != (36, 24):
+        raise RuntimeError(f"Normalized glyph shape contract violated: {result.shape}")
+    return result
 
 
 def build_neutral_glyph_atlas(reconstructions: list[np.ndarray], output: Path) -> dict:

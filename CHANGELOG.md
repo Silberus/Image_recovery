@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added full aligned-observation ledgers, crop-integrity guards, and temporal
+  MAD output to native tiny-register reconstruction.
+- Added persistent-state analysis for clocks, counters, and changing HMI
+  fields so incompatible glyph states are never averaged together.
+- Added explicit-corner still-screen rectification and a context-first status
+  row workflow.
+- PSF diagnostics now auto-discover available registers and fail closed as
+  `UNCALIBRATED_FALLBACK` when no valid edge samples exist.
 - Added a platform-video provenance workflow separating capture, production,
   editing, commissioning, publication, transcoding, and source custody.
 - Added cross-publication census guidance for official sites, newsrooms, video

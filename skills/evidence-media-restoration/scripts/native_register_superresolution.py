@@ -256,6 +256,13 @@ def main() -> int:
                 }
             )
 
+        crop_ranges = [float(np.percentile(crop, 99) - np.percentile(crop, 1)) for crop in observations]
+        nonzero_fractions = [float(np.mean(np.any(crop != 0, axis=2))) for crop in observations]
+        if max(nonzero_fractions, default=0.0) < 0.01 or max(crop_ranges, default=0.0) < 1.0:
+            raise RuntimeError(
+                f"Register {register} produced an empty/constant crop; check timestamp decoding and ROI coordinates"
+            )
+
         reference = observations[reference_index]
         aligned: list[np.ndarray] = []
         alignment_rows: list[dict[str, Any]] = []
@@ -278,12 +285,16 @@ def main() -> int:
         first_half = _huber(stack[::2])
         second_half = _huber(stack[1::2])
         split_difference = np.mean(np.abs(first_half - second_half), axis=2)
+        temporal_mad = np.median(
+            np.abs(stack - np.median(stack, axis=0, keepdims=True)), axis=(0, 3)
+        )
 
         inner_x0, inner_y0 = margin * args.scale, margin * args.scale
         inner_x1, inner_y1 = inner_x0 + width * args.scale, inner_y0 + height * args.scale
         median_inner = np.clip(median[inner_y0:inner_y1, inner_x0:inner_x1], 0, 255).astype(np.uint8)
         huber_inner = np.clip(huber[inner_y0:inner_y1, inner_x0:inner_x1], 0, 255).astype(np.uint8)
         split_inner = split_difference[inner_y0:inner_y1, inner_x0:inner_x1]
+        mad_inner = temporal_mad[inner_y0:inner_y1, inner_x0:inner_x1]
         gray = _normalize_gray(huber_inner)
         enhanced = _enhance(gray)
 
@@ -296,8 +307,34 @@ def main() -> int:
         _imwrite(register_dir / "native_huber_enhanced_x4.png", enhanced)
         split_view = np.clip(split_inner / max(float(np.percentile(split_inner, 99)), 1e-6) * 255.0, 0, 255).astype(np.uint8)
         _imwrite(register_dir / "split_difference_x4.png", split_view)
+        mad_view = np.clip(mad_inner / max(float(np.percentile(mad_inner, 99)), 1e-6) * 255.0, 0, 255).astype(np.uint8)
+        _imwrite(register_dir / "temporal_mad_x4.png", mad_view)
         _write_csv(register_dir / "phase_coverage.csv", phase_rows)
         _write_csv(register_dir / "local_alignment.csv", alignment_rows)
+
+        # Preserve every aligned observation. A downstream decoder must be
+        # able to separate a changing clock/counter from static text instead
+        # of averaging incompatible glyph states into a plausible-looking lie.
+        all_dir = register_dir / "aligned_observations"
+        all_dir.mkdir(exist_ok=True)
+        all_rows: list[dict[str, Any]] = []
+        for registered, item in zip(aligned, transforms):
+            ordinal = int(item["row"]["source_ordinal"])
+            time_seconds = float(item["row"]["time_seconds"])
+            inner = np.clip(
+                registered[inner_y0:inner_y1, inner_x0:inner_x1], 0, 255
+            ).astype(np.uint8)
+            name = f"src_{ordinal:05d}_t_{time_seconds:010.6f}.png"
+            _imwrite(all_dir / name, inner)
+            all_rows.append(
+                {
+                    "source_ordinal": ordinal,
+                    "time_seconds": time_seconds,
+                    "file": name,
+                    "classification": "DERIVED_DETERMINISTIC",
+                }
+            )
+        _write_csv(all_dir / "observations.csv", all_rows)
 
         observed_tiles: list[np.ndarray] = []
         tile_width, tile_height = width * 8, height * 8
@@ -359,6 +396,10 @@ def main() -> int:
                 "phase_coverage_fraction": len(occupied) / float(args.scale * args.scale),
                 "split_mae": float(np.mean(split_inner)),
                 "split_p90": float(np.percentile(split_inner, 90)),
+                "temporal_mad_mean": float(np.mean(mad_inner)),
+                "temporal_mad_p90": float(np.percentile(mad_inner, 90)),
+                "crop_dynamic_range_p99_p01_median": float(np.median(crop_ranges)),
+                "crop_nonzero_fraction_median": float(np.median(nonzero_fractions)),
                 "reading": "UNRESOLVED",
                 "evidence_class": "DERIVED_DETERMINISTIC",
             }
