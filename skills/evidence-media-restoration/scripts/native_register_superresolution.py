@@ -75,6 +75,57 @@ def _decode_ordinals(video: Path, ordinals: set[int]) -> dict[int, np.ndarray]:
     return frames
 
 
+def _decode_registered_frames(
+    video: Path, case: Path, registration: list[dict[str, str]]
+) -> dict[int, np.ndarray]:
+    """Decode the exact observations used by the registered case.
+
+    PyAV ordinals are local to the seek/decode window and therefore cannot be
+    used as absolute OpenCV frame numbers.  Prefer the preserved packet PTS;
+    retain the old absolute-ordinal path for legacy OpenCV cases.
+    """
+    observations_path = case / "source_observations.csv"
+    if observations_path.exists():
+        observations = _read_csv(observations_path)
+        by_ordinal = {int(row["ordinal"]): row for row in observations}
+        wanted: dict[int, int] = {}
+        for row in registration:
+            ordinal = int(row["source_ordinal"])
+            observation = by_ordinal.get(ordinal)
+            if observation and observation.get("pts") not in (None, ""):
+                wanted[ordinal] = int(observation["pts"])
+        if len(wanted) == len(registration):
+            try:
+                import av  # type: ignore
+
+                pts_to_ordinals: dict[int, list[int]] = {}
+                for ordinal, pts in wanted.items():
+                    pts_to_ordinals.setdefault(pts, []).append(ordinal)
+                first_pts, last_pts = min(pts_to_ordinals), max(pts_to_ordinals)
+                decoded: dict[int, np.ndarray] = {}
+                with av.open(str(video)) as container:
+                    stream = container.streams.video[0]
+                    container.seek(first_pts, stream=stream, any_frame=False, backward=True)
+                    for frame in container.decode(stream):
+                        if frame.pts is None:
+                            continue
+                        pts = int(frame.pts)
+                        if pts in pts_to_ordinals:
+                            image = frame.to_ndarray(format="bgr24")
+                            for ordinal in pts_to_ordinals[pts]:
+                                decoded[ordinal] = image.copy()
+                        if pts > last_pts and len(decoded) == len(wanted):
+                            break
+                missing = sorted(set(wanted).difference(decoded))
+                if not missing:
+                    return decoded
+            except Exception:
+                # The legacy absolute-ordinal path below remains deterministic
+                # and keeps older OpenCV-generated cases usable.
+                pass
+    return _decode_ordinals(video, {int(row["source_ordinal"]) for row in registration})
+
+
 def _huber(stack: np.ndarray, iterations: int = 8, delta: float = 1.5) -> np.ndarray:
     estimate = np.median(stack, axis=0)
     for _ in range(iterations):
@@ -147,7 +198,7 @@ def main() -> int:
     config = json.loads((case / "resolved_config.json").read_text(encoding="utf-8"))
     registration = [row for row in _read_csv(case / "registration.csv") if row.get("accepted") == "True"]
     boxes = _read_csv(boxes_path)
-    source_frames = _decode_ordinals(video, {int(row["source_ordinal"]) for row in registration})
+    source_frames = _decode_registered_frames(video, case, registration)
     roi_matrix = _roi_homography(config)
     out_width, out_height = map(int, config["roi"]["output_size"])
     high_scale = np.diag([args.scale, args.scale, 1.0]).astype(np.float64)
