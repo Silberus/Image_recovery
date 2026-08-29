@@ -1,0 +1,13 @@
+.runtime/
+__pycache__/
+*.py[cod]
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+case-output/
+output/
+*.log
+*.tmp
+Thumbs.db
+.DS_Store

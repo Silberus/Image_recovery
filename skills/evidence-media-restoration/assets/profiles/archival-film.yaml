@@ -1,0 +1,41 @@
+policy:
+  evidence_mode: true
+source:
+  start_seconds: 0.0
+  end_seconds: 5.0
+  stride: 1
+  prefer_pyav: true
+roi:
+  quad: []
+  output_size: []
+registration:
+  motion: affine
+  iterations: 180
+  epsilon: 0.000001
+  min_ecc: 0.72
+  min_accepted_frames: 6
+  max_accepted_frames: 120
+fusion:
+  validation_block_frames: 8
+  huber_delta: 1.35
+  huber_iterations: 7
+  tile_size: 128
+  tile_overlap: 40
+  support_threshold: 20.0
+restoration:
+  base: huber_mean
+  denoise:
+    nlm: true
+    nlm_h: 4.5
+    bilateral: false
+  deconvolution:
+    enabled: true
+    psf_size: 11
+    gaussian_sigmas: [0.8, 1.1, 1.5, 2.0]
+    motion_lengths: [5, 7]
+    motion_angles: [0, 45, 90, 135]
+    wiener_balances: [0.004, 0.012, 0.035]
+    rl_iterations: [4, 8]
+    noise_sigma_target: 5.0
+    keep_top: 3
+

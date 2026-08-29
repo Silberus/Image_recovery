@@ -1,0 +1,46 @@
+policy:
+  evidence_mode: true
+source:
+  start_seconds: 45.0
+  end_seconds: 46.0
+  stride: 1
+  prefer_pyav: true
+roi:
+  quad: [[283, 240], [731, 259], [709, 576], [265, 574]]
+  output_size: [1200, 850]
+registration:
+  reference_time_seconds: 45.6666667
+  global_feature_alignment: true
+  sift_features: 5000
+  lowe_ratio: 0.76
+  min_feature_matches: 18
+  min_homography_inliers: 14
+  ransac_threshold: 3.0
+  motion: affine
+  iterations: 160
+  epsilon: 0.000001
+  min_ecc: 0.72
+  min_accepted_frames: 8
+  max_accepted_frames: 60
+fusion:
+  validation_block_frames: 6
+  huber_delta: 1.5
+  huber_iterations: 6
+  tile_size: 96
+  tile_overlap: 32
+  support_threshold: 16.0
+restoration:
+  base: huber_mean
+  denoise:
+    nlm: true
+    nlm_h: 3.5
+    bilateral: false
+  deconvolution:
+    enabled: true
+    psf_size: 9
+    gaussian_sigmas: [0.7, 1.0]
+    motion_lengths: []
+    wiener_balances: [0.003, 0.012]
+    rl_iterations: [4, 8]
+    noise_sigma_target: 3.0
+    keep_top: 3

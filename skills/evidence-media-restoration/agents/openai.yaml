@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evidence Media Restoration"
+  short_description: "Restore media without inventing evidence"
+  default_prompt: "Use $evidence-media-restoration to reconstruct this image or video with provenance and uncertainty."

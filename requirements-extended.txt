@@ -1,0 +1,6 @@
+-r requirements-core.txt
+av>=13,<17
+scikit-image>=0.24,<0.27
+PyWavelets>=1.7,<2
+imageio-ffmpeg>=0.5,<0.7
+

@@ -1,0 +1,6 @@
+# Optional research adapters only. Their outputs must be classed MODEL_SUGGESTION.
+torch>=2.4
+torchvision>=0.19
+kornia>=0.8,<0.9
+piq>=0.8,<0.9
+

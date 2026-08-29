@@ -1,0 +1,21 @@
+{
+  "name": "evidence-media-restoration",
+  "version": "0.2.1",
+  "description": "Configurable evidence-preserving photo/video restoration with exact frame metadata, robust fusion, model audits, and provenance.",
+  "author": {
+    "name": "Silberus"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Evidence Media Restoration",
+    "shortDescription": "Restore media without inventing evidence.",
+    "longDescription": "A working configurable pipeline for images and video: source/codec inventory, PyAV PTS and frame-type capture when available, projective rectification, ECC registration, robust multi-frame fusion, donor/support/dispersion products, non-semantic deconvolution sweeps, pseudo-holdout and residual diagnostics, hashes, reports, and provenance. Neural restorers remain optional non-evidentiary suggestions.",
+    "developerName": "Silberus",
+    "category": "Developer Tools",
+    "capabilities": ["skills"],
+    "defaultPrompt": [
+      "Restore this media with provenance and uncertainty.",
+      "Compare frames without inventing unreadable details."
+    ]
+  }
+}
