@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Added a platform-video provenance workflow separating capture, production,
+  editing, commissioning, publication, transcoding, and source custody.
+- Added cross-publication census guidance for official sites, newsrooms, video
+  platforms, social accounts, event partners, and creator portfolios.
+- Added fail-closed interpretation of encoder tags, CDN asset timestamps,
+  automatic captions, reposts, and dependent platform transcodes.
+
 ## 0.2.1
 
 - Added single-resampling native-frame reconstruction for tiny HMI registers.

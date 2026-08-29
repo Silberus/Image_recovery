@@ -97,6 +97,17 @@ Read [references/library-and-repository-matrix.md](references/library-and-reposi
 
 When the task combines visual fragments with documents, posts, metadata, or technical sources, read `references/analytical-mosaic.md`. Build a claim-evidence graph, preserve source dependence, test alternatives, and report the minimal supported reconstruction rather than the most coherent story.
 
+## Platform-media provenance
+
+When asked who filmed, edited, published, or stored an online video, read
+`references/platform-media-provenance.md`. Keep the camera operator, production
+company, editor, account/post author, corporate commissioning team, and platform
+transcoder as separate identities. Container encoder tags and CDN asset times
+normally describe processing or publication, not capture. Confirm a creator or
+vendor only from an explicit credit, authoritative production record, matching
+original-file metadata, or a dated public statement; recurring visual style is
+discovery evidence only.
+
 ## Theory and method choice
 
 Read `references/methods-and-math.md` before choosing restoration parameters, claiming super-resolution, or explaining why a value remains unreadable. It defines the forward model, registration/fusion equations, sampling ceiling, and validation gates.
