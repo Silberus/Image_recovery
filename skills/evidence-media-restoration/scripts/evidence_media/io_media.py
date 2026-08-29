@@ -5,7 +5,7 @@ from typing import Any
 
 import cv2
 
-from .core import FrameRecord, sha256_file
+from .core import FrameRecord, read_image, sha256_file
 
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"}
@@ -20,9 +20,7 @@ def inspect_source(path: Path) -> dict[str, Any]:
         info.update({"kind": "image_sequence", "image_count": len(files)})
         return info
     if path.suffix.lower() in IMAGE_SUFFIXES:
-        image = cv2.imread(str(path), cv2.IMREAD_COLOR)
-        if image is None:
-            raise RuntimeError(f"Cannot decode image: {path}")
+        image = read_image(path)
         info.update({"kind": "image", "width": image.shape[1], "height": image.shape[0]})
         return info
     cap = cv2.VideoCapture(str(path))
@@ -48,14 +46,23 @@ def inspect_source(path: Path) -> dict[str, Any]:
         import av  # type: ignore
         with av.open(str(path)) as container:
             stream = container.streams.video[0]
+            context = stream.codec_context
+            try:
+                gop_size = int(context.gop_size or 0)
+            except (AttributeError, RuntimeError, ValueError):
+                gop_size = None
+            try:
+                has_b_frames = bool(context.has_b_frames)
+            except (AttributeError, RuntimeError, ValueError):
+                has_b_frames = None
             info.update({
                 "pyav_available": True,
-                "codec_name": stream.codec_context.name,
-                "codec_long_name": stream.codec_context.codec.long_name,
+                "codec_name": context.name,
+                "codec_long_name": context.codec.long_name,
                 "time_base": str(stream.time_base),
                 "average_rate": str(stream.average_rate),
-                "gop_size": int(stream.codec_context.gop_size or 0),
-                "has_b_frames": bool(stream.codec_context.has_b_frames),
+                "gop_size": gop_size,
+                "has_b_frames": has_b_frames,
                 "exact_pts_available": True,
             })
     except Exception as exc:
@@ -70,9 +77,8 @@ def decode_frames(path: Path, start: float | None, end: float | None, stride: in
         for i, p in enumerate(files):
             if i % max(1, stride):
                 continue
-            image = cv2.imread(str(p), cv2.IMREAD_COLOR)
-            if image is not None:
-                records.append(FrameRecord(i, image, source_name=p.name, backend="image-sequence"))
+            image = read_image(p)
+            records.append(FrameRecord(i, image, source_name=p.name, backend="image-sequence"))
         return records, inspect_source(path)
     if prefer_pyav:
         try:

@@ -61,9 +61,26 @@ def write_csv(path: Path, rows: Iterable[dict[str, Any]]) -> None:
 
 def save_image(path: Path, image: np.ndarray) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    ok = cv2.imwrite(str(path), np.clip(image, 0, 255).astype(np.uint8))
-    if not ok:
+    suffix = path.suffix or ".png"
+    ok, encoded = cv2.imencode(suffix, np.clip(image, 0, 255).astype(np.uint8))
+    if not ok or encoded is None:
         raise RuntimeError(f"Cannot write image: {path}")
+    # cv2.imwrite is not Unicode-safe on every Windows build.  Writing the
+    # encoded bytes through pathlib keeps Cyrillic and other non-ASCII paths
+    # lossless without changing the image codec.
+    path.write_bytes(encoded.tobytes())
+
+
+def read_image(path: Path, flags: int = cv2.IMREAD_COLOR) -> np.ndarray:
+    """Decode an image without relying on OpenCV's Windows path handling."""
+    try:
+        encoded = np.frombuffer(path.read_bytes(), dtype=np.uint8)
+    except OSError as exc:
+        raise RuntimeError(f"Cannot read image: {path}") from exc
+    image = cv2.imdecode(encoded, flags)
+    if image is None:
+        raise RuntimeError(f"Cannot decode image: {path}")
+    return image
 
 
 def sharpness(image: np.ndarray) -> float:

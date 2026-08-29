@@ -11,7 +11,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from evidence_media.core import residual_diagnostics, save_image, sha256_file, ssim_global, write_csv, write_json
+from evidence_media.core import read_image, residual_diagnostics, save_image, sha256_file, ssim_global, write_csv, write_json
 from evidence_media.registration import align_to_reference
 from evidence_media.restoration import deconvolution_sweep
 
@@ -26,10 +26,7 @@ GROUPS = [
 
 
 def read(path: Path) -> np.ndarray:
-    image = cv2.imread(str(path), cv2.IMREAD_COLOR)
-    if image is None:
-        raise RuntimeError(f"Cannot read {path}")
-    return image
+    return read_image(path)
 
 
 def labelled(image: np.ndarray, label: str, scale: int = 10) -> np.ndarray:

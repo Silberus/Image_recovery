@@ -7,7 +7,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from .core import psnr, save_image, write_json
+from .core import psnr, read_image, save_image, write_json
 from .pipeline import run_pipeline
 
 
@@ -45,10 +45,10 @@ def run_selftest(output: Path, config: dict) -> dict:
     test_config["roi"]["output_size"] = []
     test_config.setdefault("registration", {})["min_ecc"] = 0.65
     manifest = run_pipeline(fixture, result_dir, test_config)
-    truth = cv2.imread(str(truth_path), cv2.IMREAD_COLOR)
-    best = cv2.imread(str(result_dir / "01_best_observed.png"), cv2.IMREAD_COLOR)
-    median = cv2.imread(str(result_dir / "02_temporal_median.png"), cv2.IMREAD_COLOR)
-    huber = cv2.imread(str(result_dir / "03_huber_mean.png"), cv2.IMREAD_COLOR)
+    truth = read_image(truth_path)
+    best = read_image(result_dir / "01_best_observed.png")
+    median = read_image(result_dir / "02_temporal_median.png")
+    huber = read_image(result_dir / "03_huber_mean.png")
     metrics = {"best_psnr": psnr(truth, best), "median_psnr": psnr(truth, median), "huber_psnr": psnr(truth, huber), "registered": manifest["counts"]["registered"]}
     passed = metrics["registered"] >= 10 and max(metrics["median_psnr"], metrics["huber_psnr"]) > metrics["best_psnr"]
     summary = {"passed": bool(passed), "metrics": metrics, "criterion": "registered>=10 and robust fusion PSNR exceeds best observed PSNR"}
